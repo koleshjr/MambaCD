@@ -143,7 +143,7 @@ class SemanticChangeDetectionDatset(Dataset):
 class DamageAssessmentDatset(Dataset):
     def __init__(self, dataset_path, data_list, crop_size, max_iters=None, type='train', data_loader=img_loader):
         self.dataset_path = dataset_path
-        self.data_list = list(set(data_list))
+        self.data_list = data_list
         self.loader = data_loader
         self.type = type
         self.data_pro_type = self.type
