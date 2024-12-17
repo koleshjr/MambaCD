@@ -244,8 +244,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     with open(args.data_list_path, "r") as f:
-        # data_name_list = f.read()
-        data_name_list = [data_name.strip() for data_name in f]
+        data = f.read()
+
+    data_name_list = data.strip("[]").split(", ")
     args.data_name_list = data_name_list
     train_data_loader = make_data_loader(args)
     for i, data in enumerate(train_data_loader):
