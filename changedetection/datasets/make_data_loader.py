@@ -171,16 +171,11 @@ class DamageAssessmentDatset(Dataset):
 
     def __getitem__(self, index):
         if 'train' in self.data_pro_type: 
-            parts = self.data_list[index]
-
-            pre_img_name = f"{parts}_pre_disaster.png"
-            post_img_name = f"{parts}_post_disaster.png"
-
-            pre_path = os.path.join(self.dataset_path, 'images', pre_img_name)
-            post_path = os.path.join(self.dataset_path, 'images', post_img_name)
+            pre_path = os.path.join(self.dataset_path, 'images', self.data_list[index] + '_pre_disaster.png')
+            post_path = os.path.join(self.dataset_path, 'images', self.data_list[index] + '_post_disaster.png')
             
-            loc_label_path = os.path.join(self.dataset_path, 'masks', pre_img_name)
-            clf_label_path = os.path.join(self.dataset_path, 'masks', post_img_name)
+            loc_label_path = os.path.join(self.dataset_path, 'masks', self.data_list[index] + '_pre_disaster.png')
+            clf_label_path = os.path.join(self.dataset_path, 'masks', self.data_list[index] + '_post_disaster.png')
         else:
             pre_path = os.path.join(self.dataset_path, 'images', self.data_list[index] + '_pre_disaster.png')
             post_path = os.path.join(self.dataset_path, 'images', self.data_list[index] + '_post_disaster.png')
@@ -244,8 +239,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     with open(args.data_list_path, "r") as f:
-        data_name_list = ast.literal_eval(f.read())  # Safely convert string to list
-    
+        data_name_list = [data_name.strip() for data_name in f]
+
     args.data_name_list = data_name_list
 
     train_data_loader = make_data_loader(args)
