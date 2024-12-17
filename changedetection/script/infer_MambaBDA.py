@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/songjian/project/MambaCD')
+sys.path.append('../../MambaCD')
 
 import argparse
 import os
@@ -7,16 +7,16 @@ import time
 
 import numpy as np
 
-from MambaCD.changedetection.configs.config import get_config
+from changedetection.configs.config import get_config
 
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from MambaCD.changedetection.datasets.make_data_loader import DamageAssessmentDatset, make_data_loader
-from MambaCD.changedetection.utils_func.metrics import Evaluator
-from MambaCD.changedetection.models.STMambaBDA import STMambaBDA
+from changedetection.datasets.make_data_loader import DamageAssessmentDatset, make_data_loader
+from changedetection.utils_func.metrics import Evaluator
+from changedetection.models.STMambaBDA import STMambaBDA
 import imageio
 import numpy as np
 import seaborn as sns
