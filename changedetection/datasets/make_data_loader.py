@@ -1,5 +1,6 @@
 import argparse
 import os
+import ast
 
 import imageio
 import numpy as np
@@ -242,12 +243,11 @@ if __name__ == '__main__':
     parser.add_argument('--data_name_list', type=list)
 
     args = parser.parse_args()
-
     with open(args.data_list_path, "r") as f:
-        data = f.read()
-
-    data_name_list = data.strip("[]").split(", ")
+        data_name_list = ast.literal_eval(f.read())  # Safely convert string to list
+    
     args.data_name_list = data_name_list
+
     train_data_loader = make_data_loader(args)
     for i, data in enumerate(train_data_loader):
         pre_img, post_img, labels, _ = data
