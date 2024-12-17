@@ -3,8 +3,8 @@ import torch.nn.functional as F
 
 import torch
 import torch.nn as nn
-from MambaCD.changedetection.models.Mamba_backbone import Backbone_VSSM
-from MambaCD.classification.models.vmamba import VSSM, LayerNorm2d, VSSBlock, Permute
+from changedetection.models.Mamba_backbone import Backbone_VSSM
+from classification.models.vmamba import VSSM, LayerNorm2d, VSSBlock, Permute
 import os
 import time
 import math
