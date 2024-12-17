@@ -7,19 +7,19 @@ import time
 
 import numpy as np
 
-from changedetection.configs.config import get_config
+from configs.config import get_config
 
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from changedetection.datasets.make_data_loader import SemanticChangeDetectionDatset, make_data_loader
-from changedetection.utils_func.metrics import Evaluator
-from changedetection.models.STMambaSCD import STMambaSCD
-import changedetection.utils_func.lovasz_loss as L
+from datasets.make_data_loader import SemanticChangeDetectionDatset, make_data_loader
+from utils_func.metrics import Evaluator
+from models.STMambaSCD import STMambaSCD
+import utils_func.lovasz_loss as L
 from torch.optim.lr_scheduler import StepLR
-from changedetection.utils_func.mcd_utils import accuracy, SCDD_eval_all, AverageMeter
+from utils_func.mcd_utils import accuracy, SCDD_eval_all, AverageMeter
 
 class Trainer(object):
     def __init__(self, args):
