@@ -143,7 +143,7 @@ class SemanticChangeDetectionDatset(Dataset):
 class DamageAssessmentDatset(Dataset):
     def __init__(self, dataset_path, data_list, crop_size, max_iters=None, type='train', data_loader=img_loader):
         self.dataset_path = dataset_path
-        self.data_list = data_list
+        self.data_list = list(set(data_list))
         self.loader = data_loader
         self.type = type
         self.data_pro_type = self.type
@@ -170,10 +170,10 @@ class DamageAssessmentDatset(Dataset):
 
     def __getitem__(self, index):
         if 'train' in self.data_pro_type: 
-            parts = self.data_list[index].rsplit('_', 2)
+            parts = self.data_list[index]
 
-            pre_img_name = f"{parts[0]}_pre_disaster_{parts[1]}_{parts[2]}.png"
-            post_img_name = f"{parts[0]}_post_disaster_{parts[1]}_{parts[2]}.png"
+            pre_img_name = f"{parts}_pre_disaster.png"
+            post_img_name = f"{parts}_post_disaster.png"
 
             pre_path = os.path.join(self.dataset_path, 'images', pre_img_name)
             post_path = os.path.join(self.dataset_path, 'images', post_img_name)
