@@ -184,8 +184,24 @@ class DamageAssessmentDatset(Dataset):
 
         pre_img = self.loader(pre_path)
         post_img = self.loader(post_path)
-        loc_label = self.loader(loc_label_path)[:,:,0]
-        clf_label = self.loader(clf_label_path)[:,:,0]
+
+        loc_label = self.loader(loc_label_path)
+        
+        # Check if the label is 3D (height, width, channels) or 2D (height, width)
+        if len(loc_label.shape) == 3:  # 3D data (height, width, channels)
+            loc_label = loc_label[:,:,0]  # Take the first channel
+        # If it's already 2D (single channel), use it directly
+        elif len(loc_label.shape) == 2:  # 2D data (height, width)
+            pass  # No need to do anything, it's already the expected format
+        
+        # Repeat the same logic for the classifier label (clf_label)
+        clf_label = self.loader(clf_label_path)
+        
+        if len(clf_label.shape) == 3:  # 3D data (height, width, channels)
+            clf_label = clf_label[:,:,0]  # Take the first channel
+        elif len(clf_label.shape) == 2:  # 2D data (height, width)
+            pass  # No need to do anything, it's already the expected format
+
 
         if 'train' in self.data_pro_type:
             pre_img, post_img, loc_label, clf_label = self.__transforms(True, pre_img, post_img, loc_label, clf_label)
