@@ -1,5 +1,7 @@
 import sys
-sys.path.append('/home/songjian/project/MambaCD')
+import os
+# Add parent directory to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import argparse
 import os
