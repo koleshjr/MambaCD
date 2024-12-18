@@ -7,6 +7,7 @@ import torch
 import numpy as np
 import json
 from torch.utils.data import DataLoader
+from skimage.measure import label
 from tqdm import tqdm
 from changedetection.configs.config import get_config
 from changedetection.datasets.make_data_loader import DamageAssessmentDatset
@@ -99,11 +100,12 @@ class Trainer(object):
 
         self.deep_model.eval()
 
+
     def infer(self):
         torch.cuda.empty_cache()
         dataset = DamageAssessmentDatset(self.args.test_dataset_path, self.args.test_data_name_list, 256, None, 'test')
         val_data_loader = DataLoader(dataset, batch_size=1, num_workers=4, drop_last=False)
-        
+
         predictions_dict = {}
 
         with torch.no_grad():
@@ -120,30 +122,47 @@ class Trainer(object):
                 output_clf = output_clf.data.cpu().numpy()
                 output_clf = np.argmax(output_clf, axis=1)
 
-                # output_clf = output_clf[output_loc > 0]
                 image_name = names[0] + '.png' if '.png' not in names[0] else names[0]
 
-                # Count the occurrences of each category in output_clf
+                # Initialize the damage count dictionary
                 damage_count = {k: 0 for k in target_label_value_dict.keys()}
-                for damage_class in output_clf.flatten():
-                    damage_label = list(target_label_value_dict.keys())[damage_class]
+
+                # Connected component labeling (using output_clf or output_loc)
+                labeled_output, num_labels = label(output_loc > 0)  # Labels connected components where output_loc > 0
+
+                # Iterate over each labeled region and count the damage class
+                for label_idx in range(1, num_labels + 1):
+                    # Get the region corresponding to the current label
+                    building_mask = (labeled_output == label_idx)
+
+                    # Get the corresponding damage class for the building (based on the majority class in the region)
+                    building_damage_classes = output_clf[building_mask]
+                    most_common_class = np.bincount(building_damage_classes).argmax()  # Most frequent class in the building
+                    # Reverse the dictionary to map the class index back to the label name
+                    index_to_label = {v: k for k, v in target_label_value_dict.items()}
+                    damage_label = index_to_label[most_common_class]
+
+                    # Increment the damage count for the current building
                     damage_count[damage_label] += 1
 
                 # Save the predictions for the image
                 predictions_dict[image_name] = damage_count
 
+                # Process output_loc and output_clf for visualization
                 output_loc = np.squeeze(output_loc)
                 output_loc[output_loc > 0] = 255
 
                 output_clf = map_labels_to_colors(np.squeeze(output_clf), ori_label_value_dict=ori_label_value_dict, target_label_value_dict=target_label_value_dict)
                 output_clf[output_loc == 0] = 0
 
+                # Save the processed images
                 imageio.imwrite(os.path.join(self.building_map_T1_saved_path, image_name), output_loc.astype(np.uint8))
                 imageio.imwrite(os.path.join(self.change_map_T2_saved_path, image_name), output_clf.astype(np.uint8))
 
         # Save predictions to a JSON file
         with open('predictions.json', 'w') as json_file:
             json.dump(predictions_dict, json_file, indent=4)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Inference on xBD dataset")
