@@ -104,7 +104,7 @@ class Trainer(object):
         dataset = DamageAssessmentDatset(self.args.test_dataset_path, self.args.test_data_name_list, 256, None, 'test')
         val_data_loader = DataLoader(dataset, batch_size=1, num_workers=4, drop_last=False)
         
-        image_class_counts = {}
+        predictions_dict = {}
 
         with torch.no_grad():
             for itera, data in enumerate(tqdm(val_data_loader)):
@@ -114,39 +114,27 @@ class Trainer(object):
                 post_change_imgs = post_change_imgs.cuda()
 
                 output_loc, output_clf = self.deep_model(pre_change_imgs, post_change_imgs)
-
                 output_loc = output_loc.data.cpu().numpy()
                 output_loc = np.argmax(output_loc, axis=1)
-                
+
                 output_clf = output_clf.data.cpu().numpy()
                 output_clf = np.argmax(output_clf, axis=1)
 
-                # Track unique classes and their counts for loc and clf
-                for i, image_name in enumerate(names):
-                    # Get class counts for 'loc' (localization task)
-                    unique_loc, counts_loc = np.unique(output_loc[i], return_counts=True)
-                    loc_class_counts = dict(zip(unique_loc, counts_loc))
-
-                    # Get class counts for 'clf' (classification task)
-                    unique_clf, counts_clf = np.unique(output_clf[i], return_counts=True)
-                    clf_class_counts = dict(zip(unique_clf, counts_clf))
-
-                    # Store the counts in the image_class_counts dictionary
-                    image_class_counts[image_name] = {
-                        'loc': loc_class_counts,
-                        'clf': clf_class_counts
-                    }
-
-                    # Optionally print out the counts for each image
-                    print(f"Class counts for {image_name}:")
-                    print(f"  loc classes: {loc_class_counts}")
-                    print(f"  clf classes: {clf_class_counts}")
-
+                output_clf = output_clf[output_loc > 0]
                 image_name = names[0] + '.png' if '.png' not in names[0] else names[0]
+
+                # Count the occurrences of each category in output_clf
+                damage_count = {k: 0 for k in target_label_value_dict.keys()}
+                for damage_class in output_clf.flatten():
+                    damage_label = list(target_label_value_dict.keys())[damage_class]
+                    damage_count[damage_label] += 1
+
+                # Save the predictions for the image
+                predictions_dict[image_name] = damage_count
 
         # Save predictions to a JSON file
         with open('predictions.json', 'w') as json_file:
-            json.dump(image_class_counts, json_file, indent=4)
+            json.dump(predictions_dict, json_file, indent=4)
 
 def main():
     parser = argparse.ArgumentParser(description="Inference on xBD dataset")
