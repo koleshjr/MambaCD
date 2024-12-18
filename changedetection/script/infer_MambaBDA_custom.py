@@ -132,6 +132,15 @@ class Trainer(object):
                 # Save the predictions for the image
                 predictions_dict[image_name] = damage_count
 
+                output_loc = np.squeeze(output_loc)
+                output_loc[output_loc > 0] = 255
+
+                output_clf = map_labels_to_colors(np.squeeze(output_clf), ori_label_value_dict=ori_label_value_dict, target_label_value_dict=target_label_value_dict)
+                output_clf[output_loc == 0] = 0
+
+                imageio.imwrite(os.path.join(self.building_map_T1_saved_path, image_name), output_loc.astype(np.uint8))
+                imageio.imwrite(os.path.join(self.change_map_T2_saved_path, image_name), output_clf.astype(np.uint8))
+
         # Save predictions to a JSON file
         with open('predictions.json', 'w') as json_file:
             json.dump(predictions_dict, json_file, indent=4)
