@@ -120,7 +120,7 @@ class Trainer(object):
                 output_clf = output_clf.data.cpu().numpy()
                 output_clf = np.argmax(output_clf, axis=1)
 
-                output_clf = output_clf[output_loc > 0]
+                # output_clf = output_clf[output_loc > 0]
                 image_name = names[0] + '.png' if '.png' not in names[0] else names[0]
 
                 # Count the occurrences of each category in output_clf
