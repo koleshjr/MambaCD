@@ -173,17 +173,33 @@ class DamageAssessmentDatset(Dataset):
 
             pre_img_name = f"{parts}_pre_disaster.png"
             post_img_name = f"{parts}_post_disaster.png"
+            pre_target_name = f"{parts}_pre_disaster_target.png"
+            post_target_name = f"{parts}_post_disaster_target.png"
 
             pre_path = os.path.join(self.dataset_path, 'images', pre_img_name)
             post_path = os.path.join(self.dataset_path, 'images', post_img_name)
             
-            loc_label_path = os.path.join(self.dataset_path, 'masks', pre_img_name)
-            clf_label_path = os.path.join(self.dataset_path, 'masks', post_img_name)
+            loc_label_path = os.path.join(self.dataset_path, 'target', pre_target_name)
+            clf_label_path = os.path.join(self.dataset_path, 'target', post_target_name)
 
             pre_img = self.loader(pre_path)
             post_img = self.loader(post_path)
-            loc_label = self.loader(loc_label_path)[:,:,0]
-            clf_label = self.loader(clf_label_path)[:,:,0]
+            loc_label = self.loader(loc_label_path)
+            
+            # Check if the label is 3D (height, width, channels) or 2D (height, width)
+            if len(loc_label.shape) == 3:  # 3D data (height, width, channels)
+                loc_label = loc_label[:,:,0]  # Take the first channel
+            # If it's already 2D (single channel), use it directly
+            elif len(loc_label.shape) == 2:  # 2D data (height, width)
+                pass  # No need to do anything, it's already the expected format
+            
+            # Repeat the same logic for the classifier label (clf_label)
+            clf_label = self.loader(clf_label_path)
+            
+            if len(clf_label.shape) == 3:  # 3D data (height, width, channels)
+                clf_label = clf_label[:,:,0]  # Take the first channel
+            elif len(clf_label.shape) == 2:  # 2D data (height, width)
+                pass  # No need to do anything, it's already the expected format
 
             # Apply augmentation transforms during training
             pre_img, post_img, loc_label, clf_label = self.__transforms(True, pre_img, post_img, loc_label, clf_label)
@@ -196,17 +212,34 @@ class DamageAssessmentDatset(Dataset):
             
             pre_img_name = f"{parts}_pre_disaster.png"
             post_img_name = f"{parts}_post_disaster.png"
+            pre_target_name = f"{parts}_pre_disaster_target.png"
+            post_target_name = f"{parts}_post_disaster_target.png"
+
 
             pre_path = os.path.join(self.dataset_path, 'images', pre_img_name)
             post_path = os.path.join(self.dataset_path, 'images', post_img_name)
             
-            loc_label_path = os.path.join(self.dataset_path, 'masks', pre_img_name)
-            clf_label_path = os.path.join(self.dataset_path, 'masks', post_img_name)
+            loc_label_path = os.path.join(self.dataset_path, 'target', pre_target_name)
+            clf_label_path = os.path.join(self.dataset_path, 'target', post_target_name)
             
             pre_img = self.loader(pre_path)
             post_img = self.loader(post_path)
-            loc_label = self.loader(loc_label_path)[:,:,0]
-            clf_label = self.loader(clf_label_path)[:,:,0]
+            loc_label = self.loader(loc_label_path)
+            
+            # Check if the label is 3D (height, width, channels) or 2D (height, width)
+            if len(loc_label.shape) == 3:  # 3D data (height, width, channels)
+                loc_label = loc_label[:,:,0]  # Take the first channel
+            # If it's already 2D (single channel), use it directly
+            elif len(loc_label.shape) == 2:  # 2D data (height, width)
+                pass  # No need to do anything, it's already the expected format
+            
+            # Repeat the same logic for the classifier label (clf_label)
+            clf_label = self.loader(clf_label_path)
+            
+            if len(clf_label.shape) == 3:  # 3D data (height, width, channels)
+                clf_label = clf_label[:,:,0]  # Take the first channel
+            elif len(clf_label.shape) == 2:  # 2D data (height, width)
+                pass  # No need to do anything, it's already the expected format
 
             # No augmentation during validation
             pre_img, post_img, loc_label, clf_label = self.__transforms(False, pre_img, post_img, loc_label, clf_label)
