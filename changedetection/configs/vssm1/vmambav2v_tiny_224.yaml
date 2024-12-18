@@ -14,6 +14,6 @@ MODEL:
     MLP_RATIO: 4.0
     DOWNSAMPLE: "v3"
     PATCHEMBED: "v2"
-    NORM_LAYER: "ln2d"
+
 
 
