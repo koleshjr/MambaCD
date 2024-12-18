@@ -1,4 +1,6 @@
 import sys
+sys.path.append('../../MambaCD')
+
 import argparse
 import os
 import torch
