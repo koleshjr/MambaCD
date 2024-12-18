@@ -260,6 +260,12 @@ class DamageAssessmentDatset(Dataset):
             pre_img = self.loader(pre_path)
             post_img = self.loader(post_path)
 
+            pre_img = imutils.normalize_img(pre_img)  # imagenet normalization
+            pre_img = np.transpose(pre_img, (2, 0, 1))
+
+            post_img = imutils.normalize_img(post_img)  # imagenet normalization
+            post_img = np.transpose(post_img, (2, 0, 1))
+
             # Return image data along with the name of the image (index or file name)
             return pre_img, post_img, parts
 
