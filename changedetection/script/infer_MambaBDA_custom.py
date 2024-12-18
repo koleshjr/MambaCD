@@ -115,17 +115,20 @@ class Trainer(object):
 
                 output_loc, output_clf = self.deep_model(pre_change_imgs, post_change_imgs)
 
+                output_loc = output_loc.data.cpu().numpy()
+                output_loc = np.argmax(output_loc, axis=1)
+                
                 output_clf = output_clf.data.cpu().numpy()
                 output_clf = np.argmax(output_clf, axis=1)
 
                 # Track unique classes and their counts for loc and clf
                 for i, image_name in enumerate(names):
                     # Get class counts for 'loc' (localization task)
-                    unique_loc, counts_loc = np.unique(output_loc[i].cpu(), return_counts=True)
+                    unique_loc, counts_loc = np.unique(output_loc[i], return_counts=True)
                     loc_class_counts = dict(zip(unique_loc, counts_loc))
 
                     # Get class counts for 'clf' (classification task)
-                    unique_clf, counts_clf = np.unique(output_clf[i].cpu(), return_counts=True)
+                    unique_clf, counts_clf = np.unique(output_clf[i], return_counts=True)
                     clf_class_counts = dict(zip(unique_clf, counts_clf))
 
                     # Store the counts in the image_class_counts dictionary
