@@ -128,7 +128,7 @@ class Trainer(object):
                 damage_count = {k: 0 for k in target_label_value_dict.keys()}
 
                 # Connected component labeling (using output_clf or output_loc)
-                labeled_output, num_labels = label(output_loc > 0)  # Labels connected components where output_loc > 0
+                labeled_output, num_labels = label(output_loc > 0, return_num = True)  # Labels connected components where output_loc > 0
 
                 # Iterate over each labeled region and count the damage class
                 for label_idx in range(1, num_labels + 1):
