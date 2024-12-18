@@ -1,6 +1,5 @@
 import argparse
 import os
-import ast
 
 import imageio
 import numpy as np
@@ -140,7 +139,6 @@ class SemanticChangeDetectionDatset(Dataset):
     def __len__(self):
         return len(self.data_list)
 
-
 class DamageAssessmentDatset(Dataset):
     def __init__(self, dataset_path, data_list, crop_size, max_iters=None, type='train', data_loader=img_loader):
         self.dataset_path = dataset_path
@@ -170,49 +168,70 @@ class DamageAssessmentDatset(Dataset):
         return pre_img, post_img, loc_label, clf_label
 
     def __getitem__(self, index):
-        if 'train' in self.data_pro_type: 
-            pre_path = os.path.join(self.dataset_path, 'images', self.data_list[index] + '_pre_disaster.png')
-            post_path = os.path.join(self.dataset_path, 'images', self.data_list[index] + '_post_disaster.png')
+        if self.data_pro_type=='train': 
+            parts = self.data_list[index]
+
+            pre_img_name = f"{parts}_pre_disaster.png"
+            post_img_name = f"{parts}_post_disaster.png"
+
+            pre_path = os.path.join(self.dataset_path, 'images', pre_img_name)
+            post_path = os.path.join(self.dataset_path, 'images', post_img_name)
             
-            loc_label_path = os.path.join(self.dataset_path, 'target', self.data_list[index] + '_pre_disaster_target.png')
-            clf_label_path = os.path.join(self.dataset_path, 'target', self.data_list[index] + '_post_disaster_target.png')
-        else:
-            pre_path = os.path.join(self.dataset_path, 'images', self.data_list[index] + '_pre_disaster.png')
-            post_path = os.path.join(self.dataset_path, 'images', self.data_list[index] + '_post_disaster.png')
-            loc_label_path = os.path.join(self.dataset_path, 'target', self.data_list[index]+ '_pre_disaster_target.png')
-            clf_label_path = os.path.join(self.dataset_path, 'target', self.data_list[index]+ '_post_disaster_target.png')
+            loc_label_path = os.path.join(self.dataset_path, 'masks', pre_img_name)
+            clf_label_path = os.path.join(self.dataset_path, 'masks', post_img_name)
 
-        pre_img = self.loader(pre_path)
-        post_img = self.loader(post_path)
+            pre_img = self.loader(pre_path)
+            post_img = self.loader(post_path)
+            loc_label = self.loader(loc_label_path)[:,:,0]
+            clf_label = self.loader(clf_label_path)[:,:,0]
 
-        loc_label = self.loader(loc_label_path)
-        
-        # Check if the label is 3D (height, width, channels) or 2D (height, width)
-        if len(loc_label.shape) == 3:  # 3D data (height, width, channels)
-            loc_label = loc_label[:,:,0]  # Take the first channel
-        # If it's already 2D (single channel), use it directly
-        elif len(loc_label.shape) == 2:  # 2D data (height, width)
-            pass  # No need to do anything, it's already the expected format
-        
-        # Repeat the same logic for the classifier label (clf_label)
-        clf_label = self.loader(clf_label_path)
-        
-        if len(clf_label.shape) == 3:  # 3D data (height, width, channels)
-            clf_label = clf_label[:,:,0]  # Take the first channel
-        elif len(clf_label.shape) == 2:  # 2D data (height, width)
-            pass  # No need to do anything, it's already the expected format
-
-
-        if 'train' in self.data_pro_type:
+            # Apply augmentation transforms during training
             pre_img, post_img, loc_label, clf_label = self.__transforms(True, pre_img, post_img, loc_label, clf_label)
+
+            # Modify class labels during training (optional adjustment)
             clf_label[clf_label == 0] = 255
-        else:
+
+        elif self.data_pro_type == 'val':
+            parts = self.data_list[index]
+            
+            pre_img_name = f"{parts}_pre_disaster.png"
+            post_img_name = f"{parts}_post_disaster.png"
+
+            pre_path = os.path.join(self.dataset_path, 'images', pre_img_name)
+            post_path = os.path.join(self.dataset_path, 'images', post_img_name)
+            
+            loc_label_path = os.path.join(self.dataset_path, 'masks', pre_img_name)
+            clf_label_path = os.path.join(self.dataset_path, 'masks', post_img_name)
+            
+            pre_img = self.loader(pre_path)
+            post_img = self.loader(post_path)
+            loc_label = self.loader(loc_label_path)[:,:,0]
+            clf_label = self.loader(clf_label_path)[:,:,0]
+
+            # No augmentation during validation
             pre_img, post_img, loc_label, clf_label = self.__transforms(False, pre_img, post_img, loc_label, clf_label)
+
             loc_label = np.asarray(loc_label)
             clf_label = np.asarray(clf_label)
 
-        data_idx = self.data_list[index]
-        return pre_img, post_img, loc_label, clf_label, data_idx
+        else: #for 'test' dataset type
+            parts = self.data_list[index]
+            
+            pre_img_name = f"{parts}_pre_disaster.png"
+            post_img_name = f"{parts}_post_disaster.png"
+
+            pre_path = os.path.join(self.dataset_path, 'images', pre_img_name)
+            post_path = os.path.join(self.dataset_path, 'images', post_img_name)
+            
+            # No labels for the test set, just images
+            pre_img = self.loader(pre_path)
+            post_img = self.loader(post_path)
+
+            # Return image data along with the name of the image (index or file name)
+            return pre_img, post_img, parts
+
+        # Return data for training or validation, which includes images and labels
+        return pre_img, post_img, loc_label, clf_label, parts
 
     def __len__(self):
         return len(self.data_list)
@@ -254,11 +273,11 @@ if __name__ == '__main__':
     parser.add_argument('--data_name_list', type=list)
 
     args = parser.parse_args()
+
     with open(args.data_list_path, "r") as f:
+        # data_name_list = f.read()
         data_name_list = [data_name.strip() for data_name in f]
-
     args.data_name_list = data_name_list
-
     train_data_loader = make_data_loader(args)
     for i, data in enumerate(train_data_loader):
         pre_img, post_img, labels, _ = data

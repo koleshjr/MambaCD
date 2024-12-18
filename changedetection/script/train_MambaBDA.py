@@ -141,7 +141,7 @@ class Trainer(object):
         print('---------starting evaluation-----------')
         self.evaluator_loc.reset()
         self.evaluator_clf.reset()
-        dataset = DamageAssessmentDatset(self.args.test_dataset_path, self.args.test_data_name_list, 256, None, 'test')
+        dataset = DamageAssessmentDatset(self.args.test_dataset_path, self.args.test_data_name_list, 256, None, 'val')
         val_data_loader = DataLoader(dataset, batch_size=1, num_workers=4, drop_last=False)
         torch.cuda.empty_cache()
 
