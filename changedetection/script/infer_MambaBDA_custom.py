@@ -137,7 +137,12 @@ class Trainer(object):
 
                     # Get the corresponding damage class for the building (based on the majority class in the region)
                     building_damage_classes = output_clf[building_mask]
-                    most_common_class = np.bincount(building_damage_classes).argmax()  # Most frequent class in the building
+                    # most_common_class = np.bincount(building_damage_classes).argmax()  # Most frequent class in the building
+
+                    scores = np.bincount(building_damage_classes, weights=output_clf[building_mask].max(axis=1))
+                    most_common_class = scores.argmax()
+
+                    
                     # Reverse the dictionary to map the class index back to the label name
                     index_to_label = {v: k for k, v in target_label_value_dict.items()}
                     damage_label = index_to_label[most_common_class]
