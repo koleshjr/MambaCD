@@ -7,7 +7,7 @@ import torch
 import numpy as np
 import json
 from torch.utils.data import DataLoader
-from skimage.measure import label
+from skimage.measure import label, regionprops
 from tqdm import tqdm
 from changedetection.configs.config import get_config
 from changedetection.datasets.make_data_loader import DamageAssessmentDatset
@@ -100,6 +100,64 @@ class Trainer(object):
 
         self.deep_model.eval()
 
+from skimage.measure import label, regionprops
+
+class Trainer(object):
+    def __init__(self, args):
+        self.args = args
+        config = get_config(args)
+        self.deep_model = STMambaBDA(
+            output_building=2, output_damage=5,
+            pretrained=args.pretrained_weight_path,
+            patch_size=config.MODEL.VSSM.PATCH_SIZE,
+            in_chans=config.MODEL.VSSM.IN_CHANS,
+            num_classes=config.MODEL.NUM_CLASSES,
+            depths=config.MODEL.VSSM.DEPTHS,
+            dims=config.MODEL.VSSM.EMBED_DIM,
+            ssm_d_state=config.MODEL.VSSM.SSM_D_STATE,
+            ssm_ratio=config.MODEL.VSSM.SSM_RATIO,
+            ssm_rank_ratio=config.MODEL.VSSM.SSM_RANK_RATIO,
+            ssm_dt_rank=("auto" if config.MODEL.VSSM.SSM_DT_RANK == "auto" else int(config.MODEL.VSSM.SSM_DT_RANK)),
+            ssm_act_layer=config.MODEL.VSSM.SSM_ACT_LAYER,
+            ssm_conv=config.MODEL.VSSM.SSM_CONV,
+            ssm_conv_bias=config.MODEL.VSSM.SSM_CONV_BIAS,
+            ssm_drop_rate=config.MODEL.VSSM.SSM_DROP_RATE,
+            ssm_init=config.MODEL.VSSM.SSM_INIT,
+            forward_type=config.MODEL.VSSM.SSM_FORWARDTYPE,
+            mlp_ratio=config.MODEL.VSSM.MLP_RATIO,
+            mlp_act_layer=config.MODEL.VSSM.MLP_ACT_LAYER,
+            mlp_drop_rate=config.MODEL.VSSM.MLP_DROP_RATE,
+            drop_path_rate=config.MODEL.DROP_PATH_RATE,
+            patch_norm=config.MODEL.VSSM.PATCH_NORM,
+            norm_layer=config.MODEL.VSSM.NORM_LAYER,
+            downsample_version=config.MODEL.VSSM.DOWNSAMPLE,
+            patchembed_version=config.MODEL.VSSM.PATCHEMBED,
+            gmlp=config.MODEL.VSSM.GMLP,
+            use_checkpoint=config.TRAIN.USE_CHECKPOINT,
+        )
+        self.deep_model = self.deep_model.cuda()
+
+        self.building_map_T1_saved_path = os.path.join(args.result_saved_path, args.dataset, args.model_type, 'building_localization_map')
+        self.change_map_T2_saved_path = os.path.join(args.result_saved_path, args.dataset, args.model_type, 'damage_classification_map')
+
+        if not os.path.exists(self.building_map_T1_saved_path):
+            os.makedirs(self.building_map_T1_saved_path)
+        if not os.path.exists(self.change_map_T2_saved_path):
+            os.makedirs(self.change_map_T2_saved_path)
+
+        if args.resume is not None:
+            if not os.path.isfile(args.resume):
+                raise RuntimeError("=> no checkpoint found at '{}'".format(args.resume))
+            checkpoint = torch.load(args.resume)
+            model_dict = {}
+            state_dict = self.deep_model.state_dict()
+            for k, v in checkpoint.items():
+                if k in state_dict:
+                    model_dict[k] = v
+            state_dict.update(model_dict)
+            self.deep_model.load_state_dict(state_dict)
+
+        self.deep_model.eval()
 
     def infer(self):
         torch.cuda.empty_cache()
@@ -107,6 +165,9 @@ class Trainer(object):
         val_data_loader = DataLoader(dataset, batch_size=1, num_workers=4, drop_last=False)
 
         predictions_dict = {}
+
+        # Define the size threshold for excluding small regions
+        size_threshold = 50  # Adjust this threshold as needed
 
         with torch.no_grad():
             for itera, data in enumerate(tqdm(val_data_loader)):
@@ -127,21 +188,21 @@ class Trainer(object):
                 # Initialize the damage count dictionary
                 damage_count = {k: 0 for k in target_label_value_dict.keys()}
 
-                # Connected component labeling (using output_clf or output_loc)
-                labeled_output, num_labels = label(output_loc > 0, return_num = True)  # Labels connected components where output_loc > 0
+                # Connected component labeling and region properties
+                labeled_output = label(output_loc > 0)
+                regions = regionprops(labeled_output)
 
-                # Iterate over each labeled region and count the damage class
-                min_size = 50  # Minimum size in pixels
-                for label_idx in range(1, num_labels + 1):
-                    if np.sum(labeled_output == label_idx) < min_size:
-                        labeled_output[labeled_output == label_idx] = 0
+                # Iterate over each labeled region and filter out small regions
+                for region in regions:
+                    if region.area < size_threshold:
+                        continue  # Skip small regions
 
-                    building_mask = (labeled_output == label_idx)
+                    # Get the mask for the current region
+                    building_mask = (labeled_output == region.label)
 
                     # Get the corresponding damage class for the building (based on the majority class in the region)
                     building_damage_classes = output_clf[building_mask]
                     most_common_class = np.bincount(building_damage_classes).argmax()  # Most frequent class in the building
-
                     # Reverse the dictionary to map the class index back to the label name
                     index_to_label = {v: k for k, v in target_label_value_dict.items()}
                     damage_label = index_to_label[most_common_class]
