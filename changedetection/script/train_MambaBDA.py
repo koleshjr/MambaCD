@@ -184,8 +184,14 @@ class Trainer(object):
 
         loc_f1_score = self.evaluator_loc.Pixel_F1_score()
         damage_f1_score = self.evaluator_clf.Damage_F1_socore()
-        epsilon = 1e-10  # A small constant
-        harmonic_mean_f1 = len(damage_f1_score) / np.sum(1.0 / (damage_f1_score + epsilon))
+        # Replace zero F1-scores with np.nan
+        damage_f1_score_with_nan = np.where(damage_f1_score == 0, np.nan, damage_f1_score)
+        
+        # Compute harmonic mean using np.nanmean
+        if np.isnan(damage_f1_score_with_nan).all():
+            harmonic_mean_f1 = 0  # Default if all scores are zero
+        else:
+            harmonic_mean_f1 = len(damage_f1_score_with_nan) / np.nansum(1.0 / damage_f1_score_with_nan)
 
         oaf1 = 0.3 * loc_f1_score + 0.7 * harmonic_mean_f1
         print(f'lofF1 is {loc_f1_score}, clfF1 is {harmonic_mean_f1}, oaF1 is {oaf1}, '
