@@ -102,3 +102,25 @@ class Evaluator(object):
 
     def reset(self):
         self.confusion_matrix = np.zeros((self.num_class,) * 2)
+
+    def Pixel_Precision_Rate_multiclass(self):
+        assert self.confusion_matrix.shape[0] > 1  # Multi-class, not binary
+        precision_per_class = np.diag(self.confusion_matrix) / (np.sum(self.confusion_matrix, axis=0) + 1e-7)
+        return precision_per_class
+
+    def Pixel_Recall_Rate_mutliclass(self):
+        assert self.confusion_matrix.shape[0] > 1  # Multi-class, not binary
+        recall_per_class = np.diag(self.confusion_matrix) / (np.sum(self.confusion_matrix, axis=1) + 1e-7)
+        return recall_per_class
+
+    def Pixel_F1_score_multiclass(self):
+        assert self.confusion_matrix.shape[0] > 1  # Multi-class, not binary
+        precision_per_class = self.Pixel_Precision_Rate()
+        recall_per_class = self.Pixel_Recall_Rate()
+        f1_scores = 2 * (precision_per_class * recall_per_class) / (precision_per_class + recall_per_class + 1e-7)
+        return f1_scores
+    
+    def weighted_f1_multiclass(self, f1_scores, class_weights):
+        return np.sum(f1_scores * class_weights) / np.sum(class_weights)
+
+
