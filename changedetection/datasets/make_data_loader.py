@@ -211,6 +211,7 @@ class DamageAssessmentDatset(Dataset):
             # Check if the label is 3D (height, width, channels) or 2D (height, width)
             if len(loc_label.shape) == 3:  # 3D data (height, width, channels)
                 loc_label = loc_label[:, :, 0]  # Take the first channel
+                loc_label = (loc_label == 255).astype(int)
             # If it's already 2D (single channel), use it directly
             elif len(loc_label.shape) == 2:  # 2D data (height, width)
                 pass  # No need to do anything, it's already the expected format
@@ -249,6 +250,7 @@ class DamageAssessmentDatset(Dataset):
             # Check if the label is 3D (height, width, channels) or 2D (height, width)
             if len(loc_label.shape) == 3:  # 3D data (height, width, channels)
                 loc_label = loc_label[:, :, 0]  # Take the first channel
+                loc_label = (loc_label == 255).astype(int)
             # If it's already 2D (single channel), use it directly
             elif len(loc_label.shape) == 2:  # 2D data (height, width)
                 pass  # No need to do anything, it's already the expected format

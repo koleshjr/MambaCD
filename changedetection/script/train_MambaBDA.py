@@ -182,26 +182,13 @@ class Trainer(object):
                 labels_clf = labels_clf[labels_loc > 0]
                 self.evaluator_clf.add_batch(labels_clf, output_clf)
 
-
-        # Assuming `self.evaluator_loc` is for location (local) F1 score calculation and `self.evaluator_clf` is for classification F1 scores.
-        loc_f1_score = self.evaluator_loc.Pixel_F1_score_multiclass()  # Multi-class F1 score
-        damage_f1_score = self.evaluator_clf.Damage_F1_socore()  # Multi-class F1 score from per-class calculations
-
-        # For unweighted harmonic mean F1 score across all classes
-        harmonic_mean_f1 = np.nanmean(damage_f1_score)  # Calculate the mean of F1 scores for all classes
-
-        # Alternatively, you could use the weighted F1 score if you have class weights
-        # harmonic_mean_f1 = self.evaluator_clf.weighted_f1_multiclass(damage_f1_score, class_weights)
-
-        # Calculate overall F1 score as a weighted combination (or another method of combination)
+        loc_f1_score = self.evaluator_loc.Pixel_F1_score()
+        damage_f1_score = self.evaluator_clf.Damage_F1_socore()
+        harmonic_mean_f1 = len(damage_f1_score) / np.sum(1.0 / damage_f1_score)
         oaf1 = 0.3 * loc_f1_score + 0.7 * harmonic_mean_f1
-
-        # Print the results
-        print(f'locF1 is {loc_f1_score}, clfF1 is {harmonic_mean_f1}, oaF1 is {oaf1}, '
-            f'sub class F1 scores are {damage_f1_score}')
-
+        print(f'lofF1 is {loc_f1_score}, clfF1 is {harmonic_mean_f1}, oaF1 is {oaf1}, '
+              f'sub class F1 score is {damage_f1_score}')
         return loc_f1_score, harmonic_mean_f1, oaf1, damage_f1_score
-
 
 
 def main():
