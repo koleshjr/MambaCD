@@ -198,6 +198,11 @@ def lovasz_softmax_flat(probas, labels, classes='present'):
         losses.append(torch.dot(errors_sorted, Variable(lovasz_grad(fg_sorted))))
     return mean(losses)
 
+def safe_lovasz_softmax_flat(probas, labels, classes='present'):
+    if probas.numel() == 0 or probas.size(1) <= 1:
+        print("Warning: Empty or invalid probas detected")
+        return probas.sum() * 0.
+    return lovasz_softmax_flat(probas, labels, classes)
 
 def flatten_probas(probas, labels, ignore=None):
     """
