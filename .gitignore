@@ -49,3 +49,8 @@ kernels/selective_scan/test_selective_scan_speed.py
 kernels/selective_scan/test_selective_scan_easy.py
 kernels/selective_scan/ssmtriton.py
 test.sh
+
+Data/test_images_labels_targets
+Data/train_images_labels_targets
+
+*zip
