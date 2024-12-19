@@ -131,18 +131,17 @@ class Trainer(object):
                 labeled_output, num_labels = label(output_loc > 0, return_num = True)  # Labels connected components where output_loc > 0
 
                 # Iterate over each labeled region and count the damage class
+                min_size = 50  # Minimum size in pixels
                 for label_idx in range(1, num_labels + 1):
-                    # Get the region corresponding to the current label
+                    if np.sum(labeled_output == label_idx) < min_size:
+                        labeled_output[labeled_output == label_idx] = 0
+
                     building_mask = (labeled_output == label_idx)
 
                     # Get the corresponding damage class for the building (based on the majority class in the region)
                     building_damage_classes = output_clf[building_mask]
-                    # most_common_class = np.bincount(building_damage_classes).argmax()  # Most frequent class in the building
+                    most_common_class = np.bincount(building_damage_classes).argmax()  # Most frequent class in the building
 
-                    scores = np.bincount(building_damage_classes, weights=output_clf[building_mask].max(axis=1))
-                    most_common_class = scores.argmax()
-
-                    
                     # Reverse the dictionary to map the class index back to the label name
                     index_to_label = {v: k for k, v in target_label_value_dict.items()}
                     damage_label = index_to_label[most_common_class]
