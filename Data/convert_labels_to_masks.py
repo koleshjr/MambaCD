@@ -11,14 +11,14 @@ from concurrent.futures import ProcessPoolExecutor
 parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 parser.add_argument("--data", type=str, required=True, help="Path for saving preprocessed data")
 
-# Define color mappings for each damage type
 ori_label_value_dict = {
-    'background': (0, 0, 0),
-    'no-damage': (70, 181, 121),
-    'minor-damage': (167, 187, 27),
-    'major-damage': (228, 189, 139),
-    'destroyed': (181, 70, 70)
+    'background': (0, 0, 0),         # Black
+    'no-damage': (255, 0, 0),       # Red
+    'minor-damage': (0, 255, 0),    # Green
+    'major-damage': (0, 0, 255),    # Blue
+    'destroyed': (255, 255, 0)        # Yellow
 }
+
 
 def generate_and_save_image_with_masks(unique_label, labels_path, targets_path, image_size=(1024, 1024)):
     pre_path = os.path.join(labels_path, f"{unique_label}_pre_disaster.json")

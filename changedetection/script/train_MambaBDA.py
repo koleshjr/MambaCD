@@ -96,15 +96,15 @@ class Trainer(object):
         for _ in tqdm(range(elem_num)):
             itera, data = train_enumerator.__next__()
             pre_change_imgs, post_change_imgs, labels_loc, labels_clf, _ = data
-            # Flatten the clf labels to 1D
-            labels_clf_flat = labels_clf.flatten()
+            # # Flatten the clf labels to 1D
+            # labels_clf_flat = labels_clf.flatten()
 
-            # Get unique values and their counts
-            unique_labels, counts = np.unique(labels_clf_flat, return_counts=True)
+            # # # Get unique values and their counts
+            # # unique_labels, counts = np.unique(labels_clf_flat, return_counts=True)
 
-            # Print the unique labels and their counts
-            for label, count in zip(unique_labels, counts):
-                print(f"Label {label}: {count} pixels")
+            # # # Print the unique labels and their counts
+            # # for label, count in zip(unique_labels, counts):
+            # #     print(f"Label {label}: {count} pixels")
 
             pre_change_imgs = pre_change_imgs.cuda()
             post_change_imgs = post_change_imgs.cuda()
