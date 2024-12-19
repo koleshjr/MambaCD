@@ -184,7 +184,9 @@ class Trainer(object):
 
         loc_f1_score = self.evaluator_loc.Pixel_F1_score()
         damage_f1_score = self.evaluator_clf.Damage_F1_socore()
-        harmonic_mean_f1 = len(damage_f1_score) / np.sum(1.0 / damage_f1_score)
+        epsilon = 1e-10  # A small constant
+        harmonic_mean_f1 = len(damage_f1_score) / np.sum(1.0 / (damage_f1_score + epsilon))
+
         oaf1 = 0.3 * loc_f1_score + 0.7 * harmonic_mean_f1
         print(f'lofF1 is {loc_f1_score}, clfF1 is {harmonic_mean_f1}, oaF1 is {oaf1}, '
               f'sub class F1 score is {damage_f1_score}')
