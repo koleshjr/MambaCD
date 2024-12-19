@@ -173,14 +173,13 @@ class DamageAssessmentDatset(Dataset):
 
             pre_img_name = f"{parts}_pre_disaster.png"
             post_img_name = f"{parts}_post_disaster.png"
-            pre_target_name = f"{parts}_pre_disaster_target.png"
-            post_target_name = f"{parts}_post_disaster_target.png"
+
 
             pre_path = os.path.join(self.dataset_path, 'images', pre_img_name)
             post_path = os.path.join(self.dataset_path, 'images', post_img_name)
             
-            loc_label_path = os.path.join(self.dataset_path, 'target', pre_target_name)
-            clf_label_path = os.path.join(self.dataset_path, 'target', post_target_name)
+            loc_label_path = os.path.join(self.dataset_path, 'target', pre_img_name)
+            clf_label_path = os.path.join(self.dataset_path, 'target', post_img_name)
 
             pre_img = self.loader(pre_path)
             post_img = self.loader(post_path)
@@ -212,15 +211,12 @@ class DamageAssessmentDatset(Dataset):
             
             pre_img_name = f"{parts}_pre_disaster.png"
             post_img_name = f"{parts}_post_disaster.png"
-            pre_target_name = f"{parts}_pre_disaster_target.png"
-            post_target_name = f"{parts}_post_disaster_target.png"
-
 
             pre_path = os.path.join(self.dataset_path, 'images', pre_img_name)
             post_path = os.path.join(self.dataset_path, 'images', post_img_name)
             
-            loc_label_path = os.path.join(self.dataset_path, 'target', pre_target_name)
-            clf_label_path = os.path.join(self.dataset_path, 'target', post_target_name)
+            loc_label_path = os.path.join(self.dataset_path, 'target', pre_img_name)
+            clf_label_path = os.path.join(self.dataset_path, 'target', post_img_name)
             
             pre_img = self.loader(pre_path)
             post_img = self.loader(post_path)
