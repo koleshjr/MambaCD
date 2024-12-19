@@ -14,13 +14,12 @@ from changedetection.datasets.make_data_loader import DamageAssessmentDatset
 from changedetection.models.STMambaBDA import STMambaBDA
 import imageio
 
-# Original label mappings
 ori_label_value_dict = {
-    'background': (0, 0, 0),
-    'no_damage': (70, 181, 121),
-    'minor_damage': (167, 187, 27),
-    'major_damage': (228, 189, 139),
-    'destroy': (181, 70, 70)
+    'background': (0, 0, 0),         # Black
+    'no_damage': (255, 0, 0),       # Red
+    'minor_damage': (0, 255, 0),    # Green
+    'major_damage': (0, 0, 255),    # Blue
+    'destroy': (255, 255, 0)        # Yellow
 }
 
 target_label_value_dict = {

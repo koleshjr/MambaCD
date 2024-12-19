@@ -14,7 +14,6 @@ def img_loader(path):
     img = np.array(imageio.imread(path), np.float32)
     return img
 
-
 def one_hot_encoding(image, num_classes=8):
     # Create a one hot encoded tensor
     one_hot = np.eye(num_classes)[image.astype(np.uint8)]
@@ -166,14 +165,38 @@ class DamageAssessmentDatset(Dataset):
         post_img = np.transpose(post_img, (2, 0, 1))
 
         return pre_img, post_img, loc_label, clf_label
+    
+    def convert_color_to_class(self, clf_label):
+        """
+        Converts a color-coded label image to class indices dynamically.
+        This assumes that unique colors in the image are predefined.
+        """
+        color_to_class = {
+            (0, 0, 0): 0,         # Background
+            (255, 0, 0): 1,       # No damage (Red)
+            (0, 255, 0): 2,       # Minor damage (Green)
+            (0, 0, 255): 3,       # Major damage (Blue)
+            (255, 255, 0): 4      # Destroyed (Yellow)
+        }
+
+        # Convert to indices
+        h, w, c = clf_label.shape
+        clf_label_indices = np.zeros((h, w), dtype=np.uint8)
+
+        # Find unique colors and map them to indices
+        for color, class_idx in color_to_class.items():
+            mask = (clf_label[:, :, 0] == color[0]) & (clf_label[:, :, 1] == color[1]) & (clf_label[:, :, 2] == color[2])
+            clf_label_indices[mask] = class_idx
+
+        return clf_label_indices
 
     def __getitem__(self, index):
-        if self.data_pro_type=='train': 
+        # For 'train' dataset
+        if self.data_pro_type == 'train':
             parts = self.data_list[index]
 
             pre_img_name = f"{parts}_pre_disaster.png"
             post_img_name = f"{parts}_post_disaster.png"
-
 
             pre_path = os.path.join(self.dataset_path, 'images', pre_img_name)
             post_path = os.path.join(self.dataset_path, 'images', post_img_name)
@@ -187,28 +210,29 @@ class DamageAssessmentDatset(Dataset):
             
             # Check if the label is 3D (height, width, channels) or 2D (height, width)
             if len(loc_label.shape) == 3:  # 3D data (height, width, channels)
-                loc_label = loc_label[:,:,0]  # Take the first channel
+                loc_label = loc_label[:, :, 0]  # Take the first channel
             # If it's already 2D (single channel), use it directly
             elif len(loc_label.shape) == 2:  # 2D data (height, width)
                 pass  # No need to do anything, it's already the expected format
             
-            # Repeat the same logic for the classifier label (clf_label)
+            # Load classifier label and convert colors to class indices
             clf_label = self.loader(clf_label_path)
+
+            if len(clf_label.shape) == 3:
+                clf_label = self.convert_color_to_class(clf_label)
+
             
-            if len(clf_label.shape) == 3:  # 3D data (height, width, channels)
-                clf_label = clf_label[:,:,0]  # Take the first channel
-            elif len(clf_label.shape) == 2:  # 2D data (height, width)
-                pass  # No need to do anything, it's already the expected format
 
             # Apply augmentation transforms during training
             pre_img, post_img, loc_label, clf_label = self.__transforms(True, pre_img, post_img, loc_label, clf_label)
 
             # Modify class labels during training (optional adjustment)
-            clf_label[clf_label == 0] = 255
+            clf_label[clf_label == 0] = 255  # Adjust the background label (optional)
 
+        # For 'val' dataset
         elif self.data_pro_type == 'val':
             parts = self.data_list[index]
-            
+
             pre_img_name = f"{parts}_pre_disaster.png"
             post_img_name = f"{parts}_post_disaster.png"
 
@@ -217,25 +241,23 @@ class DamageAssessmentDatset(Dataset):
             
             loc_label_path = os.path.join(self.dataset_path, 'target', pre_img_name)
             clf_label_path = os.path.join(self.dataset_path, 'target', post_img_name)
-            
+
             pre_img = self.loader(pre_path)
             post_img = self.loader(post_path)
             loc_label = self.loader(loc_label_path)
-            
+
             # Check if the label is 3D (height, width, channels) or 2D (height, width)
             if len(loc_label.shape) == 3:  # 3D data (height, width, channels)
-                loc_label = loc_label[:,:,0]  # Take the first channel
+                loc_label = loc_label[:, :, 0]  # Take the first channel
             # If it's already 2D (single channel), use it directly
             elif len(loc_label.shape) == 2:  # 2D data (height, width)
                 pass  # No need to do anything, it's already the expected format
             
-            # Repeat the same logic for the classifier label (clf_label)
+            # Load classifier label and convert colors to class indices
             clf_label = self.loader(clf_label_path)
-            
-            if len(clf_label.shape) == 3:  # 3D data (height, width, channels)
-                clf_label = clf_label[:,:,0]  # Take the first channel
-            elif len(clf_label.shape) == 2:  # 2D data (height, width)
-                pass  # No need to do anything, it's already the expected format
+
+            if len(clf_label.shape) == 3:
+                clf_label = self.convert_color_to_class(clf_label)
 
             # No augmentation during validation
             pre_img, post_img, loc_label, clf_label = self.__transforms(False, pre_img, post_img, loc_label, clf_label)
@@ -243,7 +265,8 @@ class DamageAssessmentDatset(Dataset):
             loc_label = np.asarray(loc_label)
             clf_label = np.asarray(clf_label)
 
-        else: #for 'test' dataset type
+        # For 'test' dataset type (no label available)
+        else:  # 'test' dataset type
             parts = self.data_list[index]
             
             pre_img_name = f"{parts}_pre_disaster.png"
