@@ -206,21 +206,31 @@ def safe_lovasz_softmax_flat(probas, labels, classes='present'):
 
 def flatten_probas(probas, labels, ignore=None):
     """
-    Flattens predictions in the batch
+    Flattens predictions in the batch and filters out ignored labels.
+    Handles edge cases where all labels are ignored or the input tensor dimensions are incorrect.
     """
+    # Ensure probas is 4D
     if probas.dim() == 3:
-        # assumes output of a sigmoid layer
+        # Assumes output of a sigmoid layer for binary classification
         B, H, W = probas.size()
         probas = probas.view(B, 1, H, W)
+
+    # Get dimensions
     B, C, H, W = probas.size()
-    probas = probas.permute(0, 2, 3, 1).contiguous().view(-1, C)  # B * H * W, C = P, C
-    labels = labels.view(-1)
-    if ignore is None:
-        return probas, labels
-    valid = (labels != ignore)
-    vprobas = probas[valid.nonzero().squeeze()]
-    vlabels = labels[valid]
-    return vprobas, vlabels
+
+    # Flatten spatial dimensions
+    probas = probas.permute(0, 2, 3, 1).contiguous().view(-1, C)  # Shape: [B * H * W, C]
+    labels = labels.view(-1)  # Shape: [B * H * W]
+
+    # Handle ignored labels if specified
+    if ignore is not None:
+        valid = (labels != ignore)
+        if valid.sum() == 0:  # All labels are ignored
+            return probas.new_empty((0, C)), labels.new_empty((0,))
+        probas = probas[valid]
+        labels = labels[valid]
+
+    return probas, labels
 
 def xloss(logits, labels, ignore=None):
     """
