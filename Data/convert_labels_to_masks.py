@@ -94,9 +94,13 @@ def generate_and_save_image_with_masks(unique_label, labels_path, targets_path, 
     output_pre_path = pre_path.replace(labels_path, targets_path).replace(".json", ".png")
     output_post_path = post_path.replace(labels_path, targets_path).replace(".json", ".png")
 
-    # Save the pre and post masks
-    cv2.imwrite(output_pre_path, pre_mask)
-    cv2.imwrite(output_post_path, post_mask)
+    # Convert post_mask to RGB before saving
+    post_mask_rgb = cv2.cvtColor(post_mask, cv2.COLOR_BGR2RGB)
+    pre_mask_rgb = cv2.cvtColor(pre_mask, cv2.COLOR_BGR2RGB)
+
+    # Save the masks
+    cv2.imwrite(output_pre_path, pre_mask_rgb)
+    cv2.imwrite(output_post_path, post_mask_rgb)
 
 def process_labels_in_parallel(labels_path, targets_path, unique_labels):
     # Use ProcessPoolExecutor to process each label in parallel

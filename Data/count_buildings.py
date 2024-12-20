@@ -2,17 +2,18 @@ import numpy as np
 import cv2
 from skimage.measure import label
 
-# Color mappings for each damage type
 ori_label_value_dict = {
-    'background': (0, 0, 0),
-    'no_damage': (70, 181, 121),
-    'minor_damage': (167, 187, 27),
-    'major_damage': (228, 189, 139),
-    'destroy': (181, 70, 70)
+    'background': (0, 0, 0),         # Black
+    'no-damage': (255, 0, 0),       # Red
+    'minor-damage': (0, 255, 0),    # Green
+    'major-damage': (0, 0, 255),    # Blue
+    'destroyed': (255, 255, 0)        # Yellow
 }
 def count_segments_in_mask(mask_image_path):
     # Load the mask image (either pre or post)
     mask = cv2.imread(mask_image_path, cv2.IMREAD_COLOR)
+    mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
+
     label_type = 'post' if 'post' in mask_image_path else 'pre'
     
     # If the image is loaded successfully
@@ -60,7 +61,7 @@ def count_segments_in_mask(mask_image_path):
 
         return labeled_mask, num_labels
 
-mask_image_path = 'test_images_labels_targets/targets/santa-rosa-wildfire_00000068_post_disaster.png'
+mask_image_path = 'test_images_labels_targets/targets/hurricane-florence_00000268_post_disaster.png'
 _, num_labels = count_segments_in_mask(mask_image_path)
 print(num_labels)
 
