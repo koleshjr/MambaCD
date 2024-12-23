@@ -175,7 +175,7 @@ class Trainer(object):
 
         # Define thresholds for confidence and size filtering
         size_threshold = self.args.size_threshold  # Minimum region size in pixels
-        confidence_threshold = self.args.confidence_threshold  # Minimum confidence score for pixels
+        confidence_threshold = self.args.conf_threshold  # Minimum confidence score for pixels
 
         with torch.no_grad():
             for itera, data in enumerate(tqdm(val_data_loader)):
