@@ -144,11 +144,20 @@ class Trainer(object):
 
                 for region in regions:
                     building_mask = (labeled_output == region.label)
-                    region_confidence = confidence_scores[building_mask].mean()
 
-                    if region_confidence < confidence_threshold:
-                        continue  # Skip low-confidence regions
+                    if self.args.choice == 'pixel_wise':  # Pixel-wise confidence filtering
+                        # Filter based on raw pixel confidence
+                        region_confidence = confidence_scores[building_mask]
+                        if np.any(region_confidence < confidence_threshold):  # Skip if any pixel is low-confidence
+                            continue
 
+                    elif self.args.choice == 'mean':  # Mean confidence filtering
+                        # Calculate the mean confidence of the region
+                        region_confidence = confidence_scores[building_mask].mean()
+                        if region_confidence < confidence_threshold:  # Skip if mean confidence is low
+                            continue
+
+                    # If the region passes the confidence threshold, process it
                     num_masks_after += 1
                     building_damage_classes = output_clf[building_mask]
                     most_common_class = np.bincount(building_damage_classes).argmax()
@@ -172,9 +181,9 @@ class Trainer(object):
                 imageio.imwrite(os.path.join(self.change_map_T2_saved_path, image_name), output_clf_image)
                 imageio.imwrite(os.path.join(self.confidence_map_saved_path, image_name), confidence_map_image)
 
-        # Save predictions
-        with open('predictions.json', 'w') as json_file:
-            json.dump(predictions_dict, json_file, indent=4)
+            # Save predictions
+            with open('predictions.json', 'w') as json_file:
+                json.dump(predictions_dict, json_file, indent=4)
 
 def main():
     parser = argparse.ArgumentParser(description="Inference on xBD dataset")
@@ -192,6 +201,7 @@ def main():
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--model_type', type=str, default='MambaBDA_Tiny')
     parser.add_argument('--result_saved_path', type=str, default='../results')
+    parser.add_argument('--choice', type='str', default='mean')
     parser.add_argument("--conf_threshold", type=float, default=0.0, help="conf Threshold to exclude small regions by mean confidence")
     # Add other arguments here as needed
     parser.add_argument('--resume', type=str)
