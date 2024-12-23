@@ -174,7 +174,10 @@ class Trainer(object):
                 # Save visualizations and confidence map
                 output_loc_image = (np.squeeze(output_loc) > 0).astype(np.uint8) * 255
                 output_clf_image = map_labels_to_colors(np.squeeze(output_clf), ori_label_value_dict, target_label_value_dict)
-                output_clf_image[output_loc == 0] = 0
+                try:
+                    output_clf_image[output_loc == 0] = 0
+                except Exception as e:
+                    print(f"Error occurred while saving visualization: {e}")
 
                 confidence_map_image = (confidence_scores * 255).astype(np.uint8)
                 imageio.imwrite(os.path.join(self.building_map_T1_saved_path, image_name), output_loc_image)
