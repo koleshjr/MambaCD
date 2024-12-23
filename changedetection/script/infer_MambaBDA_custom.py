@@ -168,7 +168,7 @@ class Trainer(object):
         predictions_dict = {}
 
         # Define the size threshold for excluding small regions
-        confidence_threshold = self.args.size_threshold # Adjust this threshold as needed
+        confidence_threshold = self.args.conf_threshold # Adjust this threshold as needed
 
         with torch.no_grad():
             for itera, data in enumerate(tqdm(val_data_loader)):
@@ -263,7 +263,7 @@ def main():
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--model_type', type=str, default='MambaBDA_Tiny')
     parser.add_argument('--result_saved_path', type=str, default='../results')
-    parser.add_argument("--conf_threshold", type=int, default=0.0, help="conf Threshold to exclude small regions by mean confidence")
+    parser.add_argument("--conf_threshold", type=float, default=0.0, help="conf Threshold to exclude small regions by mean confidence")
     # Add other arguments here as needed
     parser.add_argument('--resume', type=str)
 
