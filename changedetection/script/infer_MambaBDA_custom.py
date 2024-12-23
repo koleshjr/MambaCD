@@ -4,9 +4,13 @@ sys.path.append('../../MambaCD')
 import argparse
 import os
 import torch
+import logging
+logging.basicConfig(level=logging.INFO)
+
 import numpy as np
 import json
 from torch.utils.data import DataLoader
+from torch.nn.functional import softmax
 from skimage.measure import label, regionprops
 from tqdm import tqdm
 from changedetection.configs.config import get_config
@@ -159,14 +163,6 @@ class Trainer(object):
         self.deep_model.eval()
 
     def infer(self):
-        import torch
-        import numpy as np
-        import os
-        import imageio
-        from skimage.measure import label, regionprops
-        from tqdm import tqdm
-        import json
-
         torch.cuda.empty_cache()
         dataset = DamageAssessmentDatset(self.args.test_dataset_path, self.args.test_data_name_list, 256, None, 'test')
         val_data_loader = DataLoader(dataset, batch_size=1, num_workers=4, drop_last=False)
@@ -174,8 +170,8 @@ class Trainer(object):
         predictions_dict = {}
 
         # Define thresholds for confidence and size filtering
-        size_threshold = self.args.size_threshold  # Minimum region size in pixels
         confidence_threshold = self.args.conf_threshold  # Minimum confidence score for pixels
+
 
         with torch.no_grad():
             for itera, data in enumerate(tqdm(val_data_loader)):
@@ -184,69 +180,68 @@ class Trainer(object):
                 pre_change_imgs = pre_change_imgs.cuda()
                 post_change_imgs = post_change_imgs.cuda()
 
-                # Model inference
                 output_loc, output_clf = self.deep_model(pre_change_imgs, post_change_imgs)
+                
+                # Convert logits to probabilities for output_loc
+                probabilities_loc = softmax(output_loc.cpu(), dim=1).numpy()
+                confidence_scores = np.max(probabilities_loc, axis=1)  # Max confidence for each pixel
 
-                # Convert logits to probabilities and compute confidence scores
-                output_loc = output_loc.data.cpu().numpy()
-                output_conf = np.max(output_loc, axis=1)  # Confidence scores (max probabilities)
-                output_loc = np.argmax(output_loc, axis=1)  # Class labels
-
-                output_clf = output_clf.data.cpu().numpy()
-                output_clf = np.argmax(output_clf, axis=1)
+                # Process the class predictions for output_loc and output_clf
+                output_loc = np.argmax(output_loc.data.cpu().numpy(), axis=1)
+                output_clf = np.argmax(output_clf.data.cpu().numpy(), axis=1)
 
                 image_name = names[0] + '.png' if '.png' not in names[0] else names[0]
-
-                # Filter raw pixels based on confidence threshold
-                conf_mask = output_conf >= confidence_threshold
-                filtered_output_loc = output_loc * conf_mask
-
-                # Connected component labeling on filtered output
-                labeled_output = label(filtered_output_loc > 0)
-                regions = regionprops(labeled_output)
 
                 # Initialize the damage count dictionary
                 damage_count = {k: 0 for k in target_label_value_dict.keys()}
 
-                # Process each region
+                # Connected component labeling and region properties
+                labeled_output = label(output_loc > 0)
+                regions = regionprops(labeled_output)
+
+                # Log the number of masks before filtering
+                num_masks_before = len(regions)
+                logging.info(f"Image: {image_name} - Number of masks before filtering: {num_masks_before}")
+
+                num_masks_after = 0  # Counter for masks that pass the confidence filter
+
+                # Iterate over each labeled region and filter by confidence
                 for region in regions:
-                    if region.area < size_threshold:
-                        continue  # Skip small regions
+                    # Get the mask for the current region
+                    building_mask = (labeled_output == region.label)
 
-                    # Mask for the current region
-                    region_mask = (labeled_output == region.label)
+                    # Calculate the average confidence for the region
+                    region_confidence = confidence_scores[building_mask].mean()
 
-                    # Compute mean confidence for the region
-                    region_confidences = output_conf[region_mask]
-                    if np.mean(region_confidences) < confidence_threshold:
-                        continue  # Skip regions with low mean confidence
+                    if region_confidence < confidence_threshold:
+                        continue  # Skip low-confidence regions
 
-                    # Determine the majority class in the region
-                    region_damage_classes = output_clf[region_mask]
-                    most_common_class = np.bincount(region_damage_classes).argmax()  # Most frequent class
+                    num_masks_after += 1  # Increment the counter for remaining masks
 
-                    # Map the class index to the label name
+                    # Get the corresponding damage class for the building
+                    building_damage_classes = output_clf[building_mask]
+                    most_common_class = np.bincount(building_damage_classes).argmax()
+
+                    # Reverse the dictionary to map the class index back to the label name
                     index_to_label = {v: k for k, v in target_label_value_dict.items()}
                     damage_label = index_to_label[most_common_class]
 
-                    # Increment the damage count for the current region
+                    # Increment the damage count for the current building
                     damage_count[damage_label] += 1
+
+                # Log the number of masks after filtering
+                logging.info(f"Image: {image_name} - Number of masks after filtering: {num_masks_after}")
 
                 # Save the predictions for the image
                 predictions_dict[image_name] = damage_count
 
-                # Visualization
+                # Process and save the visualizations
                 output_loc = np.squeeze(output_loc)
-                output_loc[output_loc > 0] = 255  # Mark building areas
+                output_loc[output_loc > 0] = 255
 
-                output_clf = map_labels_to_colors(
-                    np.squeeze(output_clf),
-                    ori_label_value_dict=ori_label_value_dict,
-                    target_label_value_dict=target_label_value_dict,
-                )
-                output_clf[output_loc == 0] = 0  # Mask out non-building areas
+                output_clf = map_labels_to_colors(np.squeeze(output_clf), ori_label_value_dict=ori_label_value_dict, target_label_value_dict=target_label_value_dict)
+                output_clf[output_loc == 0] = 0
 
-                # Save processed images
                 imageio.imwrite(os.path.join(self.building_map_T1_saved_path, image_name), output_loc.astype(np.uint8))
                 imageio.imwrite(os.path.join(self.change_map_T2_saved_path, image_name), output_clf.astype(np.uint8))
 
