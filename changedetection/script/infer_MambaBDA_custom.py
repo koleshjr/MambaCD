@@ -181,8 +181,13 @@ class Trainer(object):
 
                 output_clf = output_clf.data.cpu().numpy()
 
-                # Apply the confidence threshold: Mask out low-confidence pixels
-                output_clf[output_clf < conf_threshold] = 0  # Set low confidence pixels to 0 or any other value
+                # Apply the confidence threshold
+                if len(output_clf.shape) == 3:  # If it's 3D
+                    output_clf[output_clf < conf_threshold] = 0
+                elif len(output_clf.shape) == 4:  # If it's 4D (e.g., with channels)
+                    output_clf = np.argmax(output_clf, axis=1)  # Get the predicted class for each pixel
+                    output_clf[output_clf < conf_threshold] = 0  # Apply threshold on class predictions
+
                 output_loc[output_clf == 0] = 0  # Set corresponding output_loc pixels to 0 as well (optional)
 
                 image_name = names[0] + '.png' if '.png' not in names[0] else names[0]
@@ -196,6 +201,10 @@ class Trainer(object):
 
                 # Iterate over each labeled region and count damage
                 for region in regions:
+                    # Skip small regions by area threshold
+                    if region.area < size_threshold:
+                        continue
+
                     # Get the mask for the current region
                     building_mask = (labeled_output == region.label)
 
@@ -228,7 +237,6 @@ class Trainer(object):
         with open('predictions.json', 'w') as json_file:
             json.dump(predictions_dict, json_file, indent=4)
 
-
 def main():
     parser = argparse.ArgumentParser(description="Inference on xBD dataset")
     parser.add_argument('--cfg', type=str, default='/home/songjian/project/MambaCD/VMamba/classification/configs/vssm1/vssm_base_224.yaml')
@@ -245,7 +253,7 @@ def main():
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--model_type', type=str, default='MambaBDA_Tiny')
     parser.add_argument('--result_saved_path', type=str, default='../results')
-    parser.add_argument("--conf_threshold", type=float, default=0.5, help="Threshold to exclude low conf pixels")
+    parser.add_argument("--size_threshold", type=int, default=0, help="Threshold to exclude small regions by area")
     # Add other arguments here as needed
     parser.add_argument('--resume', type=str)
 
