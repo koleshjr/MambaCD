@@ -201,9 +201,6 @@ class Trainer(object):
 
                 # Iterate over each labeled region and count damage
                 for region in regions:
-                    # Skip small regions by area threshold
-                    if region.area < size_threshold:
-                        continue
 
                     # Get the mask for the current region
                     building_mask = (labeled_output == region.label)
@@ -253,7 +250,7 @@ def main():
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--model_type', type=str, default='MambaBDA_Tiny')
     parser.add_argument('--result_saved_path', type=str, default='../results')
-    parser.add_argument("--size_threshold", type=int, default=0, help="Threshold to exclude small regions by area")
+    parser.add_argument("--conf_threshold", type=float, default=0.5, help="Threshold to exclude low conf pixels")
     # Add other arguments here as needed
     parser.add_argument('--resume', type=str)
 
