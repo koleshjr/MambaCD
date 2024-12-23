@@ -137,7 +137,6 @@ class Trainer(object):
                 labeled_output = label(output_loc > 0)
                 regions = regionprops(labeled_output)
                 logging.info(f"Image: {image_name} - Masks before filtering: {len(regions)}")
-                print(len(regions))
 
                 num_masks_after = 0
                 damage_count = {k: 0 for k in target_label_value_dict.keys()}
@@ -167,7 +166,6 @@ class Trainer(object):
                     damage_count[damage_label] += 1
 
                 logging.info(f"Image: {image_name} - Masks after filtering: {num_masks_after}")
-                print(f"num_masks_output: {num_masks_after}")
 
                 predictions_dict[image_name] = damage_count
 
