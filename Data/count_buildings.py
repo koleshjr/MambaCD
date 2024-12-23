@@ -61,7 +61,7 @@ def count_segments_in_mask(mask_image_path):
 
         return labeled_mask, num_labels
 
-mask_image_path = 'test_images_labels_targets/targets/hurricane-florence_00000268_post_disaster.png'
+mask_image_path = 'train_images_labels_targets/targets/guatemala-volcano_00000025_post_disaster.png'
 _, num_labels = count_segments_in_mask(mask_image_path)
 print(num_labels)
 

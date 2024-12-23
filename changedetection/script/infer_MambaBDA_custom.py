@@ -4,15 +4,19 @@ sys.path.append('../../MambaCD')
 import argparse
 import os
 import torch
+import logging
 import numpy as np
 import json
 from torch.utils.data import DataLoader
+from torch.nn.functional import softmax
 from skimage.measure import label, regionprops
 from tqdm import tqdm
 from changedetection.configs.config import get_config
 from changedetection.datasets.make_data_loader import DamageAssessmentDatset
 from changedetection.models.STMambaBDA import STMambaBDA
 import imageio
+
+logging.basicConfig(level=logging.INFO)
 
 ori_label_value_dict = {
     'background': (0, 0, 0),         # Black
@@ -99,8 +103,6 @@ class Trainer(object):
 
         self.deep_model.eval()
 
-from skimage.measure import label, regionprops
-
 class Trainer(object):
     def __init__(self, args):
         self.args = args
@@ -166,7 +168,7 @@ class Trainer(object):
         predictions_dict = {}
 
         # Define the size threshold for excluding small regions
-        size_threshold = self.args.size_threshold # Adjust this threshold as needed
+        confidence_threshold = self.args.size_threshold # Adjust this threshold as needed
 
         with torch.no_grad():
             for itera, data in enumerate(tqdm(val_data_loader)):
@@ -176,11 +178,14 @@ class Trainer(object):
                 post_change_imgs = post_change_imgs.cuda()
 
                 output_loc, output_clf = self.deep_model(pre_change_imgs, post_change_imgs)
-                output_loc = output_loc.data.cpu().numpy()
-                output_loc = np.argmax(output_loc, axis=1)
+                
+                # Convert logits to probabilities for output_loc
+                probabilities_loc = softmax(torch.tensor(output_loc), dim=1).numpy()
+                confidence_scores = np.max(probabilities_loc, axis=1)  # Max confidence for each pixel
 
-                output_clf = output_clf.data.cpu().numpy()
-                output_clf = np.argmax(output_clf, axis=1)
+                # Process the class predictions for output_loc and output_clf
+                output_loc = np.argmax(output_loc.data.cpu().numpy(), axis=1)
+                output_clf = np.argmax(output_clf.data.cpu().numpy(), axis=1)
 
                 image_name = names[0] + '.png' if '.png' not in names[0] else names[0]
 
@@ -191,17 +196,29 @@ class Trainer(object):
                 labeled_output = label(output_loc > 0)
                 regions = regionprops(labeled_output)
 
-                # Iterate over each labeled region and filter out small regions
-                for region in regions:
-                    if region.area < size_threshold:
-                        continue  # Skip small regions
+                # Log the number of masks before filtering
+                num_masks_before = len(regions)
+                logging.info(f"Image: {image_name} - Number of masks before filtering: {num_masks_before}")
 
+                num_masks_after = 0  # Counter for masks that pass the confidence filter
+
+                # Iterate over each labeled region and filter by confidence
+                for region in regions:
                     # Get the mask for the current region
                     building_mask = (labeled_output == region.label)
 
-                    # Get the corresponding damage class for the building (based on the majority class in the region)
+                    # Calculate the average confidence for the region
+                    region_confidence = confidence_scores[building_mask].mean()
+
+                    if region_confidence < confidence_threshold:
+                        continue  # Skip low-confidence regions
+
+                    num_masks_after += 1  # Increment the counter for remaining masks
+
+                    # Get the corresponding damage class for the building
                     building_damage_classes = output_clf[building_mask]
-                    most_common_class = np.bincount(building_damage_classes).argmax()  # Most frequent class in the building
+                    most_common_class = np.bincount(building_damage_classes).argmax()
+
                     # Reverse the dictionary to map the class index back to the label name
                     index_to_label = {v: k for k, v in target_label_value_dict.items()}
                     damage_label = index_to_label[most_common_class]
@@ -209,17 +226,19 @@ class Trainer(object):
                     # Increment the damage count for the current building
                     damage_count[damage_label] += 1
 
+                # Log the number of masks after filtering
+                logging.info(f"Image: {image_name} - Number of masks after filtering: {num_masks_after}")
+
                 # Save the predictions for the image
                 predictions_dict[image_name] = damage_count
 
-                # Process output_loc and output_clf for visualization
+                # Process and save the visualizations
                 output_loc = np.squeeze(output_loc)
                 output_loc[output_loc > 0] = 255
 
                 output_clf = map_labels_to_colors(np.squeeze(output_clf), ori_label_value_dict=ori_label_value_dict, target_label_value_dict=target_label_value_dict)
                 output_clf[output_loc == 0] = 0
 
-                # Save the processed images
                 imageio.imwrite(os.path.join(self.building_map_T1_saved_path, image_name), output_loc.astype(np.uint8))
                 imageio.imwrite(os.path.join(self.change_map_T2_saved_path, image_name), output_clf.astype(np.uint8))
 
@@ -244,7 +263,7 @@ def main():
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--model_type', type=str, default='MambaBDA_Tiny')
     parser.add_argument('--result_saved_path', type=str, default='../results')
-    parser.add_argument("--size_threshold", type=int, default=0, help="Threshold to exclude small regions by area")
+    parser.add_argument("--conf_threshold", type=int, default=0.0, help="conf Threshold to exclude small regions by mean confidence")
     # Add other arguments here as needed
     parser.add_argument('--resume', type=str)
 

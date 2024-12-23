@@ -8,7 +8,7 @@ def img_loader(path):
     return img
 
 # Load the image
-image_path = "test_images_labels_targets/targets/hurricane-florence_00000268_post_disaster.png"
+image_path = "train_images_labels_targets/targets/guatemala-volcano_00000025_post_disaster.png"
 clf_label = img_loader(image_path)#np.array(Image.open(image_path))
 
 # Check the shape of the image
