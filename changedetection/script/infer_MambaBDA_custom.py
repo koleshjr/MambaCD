@@ -180,7 +180,7 @@ class Trainer(object):
                 output_loc, output_clf = self.deep_model(pre_change_imgs, post_change_imgs)
                 
                 # Convert logits to probabilities for output_loc
-                probabilities_loc = softmax(torch.tensor(output_loc), dim=1).numpy()
+                probabilities_loc = softmax(torch.tensor(output_loc).cpu(), dim=1).numpy()
                 confidence_scores = np.max(probabilities_loc, axis=1)  # Max confidence for each pixel
 
                 # Process the class predictions for output_loc and output_clf
