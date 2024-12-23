@@ -158,7 +158,7 @@ class Trainer(object):
                     damage_count[damage_label] += 1
 
                 logging.info(f"Image: {image_name} - Masks after filtering: {num_masks_after}")
-                print(f"num_masks_output: {len(num_masks_after)}")
+                print(f"num_masks_output: {num_masks_after}")
 
                 predictions_dict[image_name] = damage_count
 
