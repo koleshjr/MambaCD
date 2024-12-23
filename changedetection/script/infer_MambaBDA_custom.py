@@ -165,8 +165,8 @@ class Trainer(object):
 
         predictions_dict = {}
 
-        # Define the size threshold for excluding small regions
-        size_threshold = self.args.size_threshold # Adjust this threshold as needed
+        # Define the confidence threshold
+        conf_threshold = self.args.conf_threshold  # You can adjust this value
 
         with torch.no_grad():
             for itera, data in enumerate(tqdm(val_data_loader)):
@@ -180,7 +180,10 @@ class Trainer(object):
                 output_loc = np.argmax(output_loc, axis=1)
 
                 output_clf = output_clf.data.cpu().numpy()
-                output_clf = np.argmax(output_clf, axis=1)
+
+                # Apply the confidence threshold: Mask out low-confidence pixels
+                output_clf[output_clf < conf_threshold] = 0  # Set low confidence pixels to 0 or any other value
+                output_loc[output_clf == 0] = 0  # Set corresponding output_loc pixels to 0 as well (optional)
 
                 image_name = names[0] + '.png' if '.png' not in names[0] else names[0]
 
@@ -191,17 +194,15 @@ class Trainer(object):
                 labeled_output = label(output_loc > 0)
                 regions = regionprops(labeled_output)
 
-                # Iterate over each labeled region and filter out small regions
+                # Iterate over each labeled region and count damage
                 for region in regions:
-                    if region.area < size_threshold:
-                        continue  # Skip small regions
-
                     # Get the mask for the current region
                     building_mask = (labeled_output == region.label)
 
-                    # Get the corresponding damage class for the building (based on the majority class in the region)
+                    # Get the corresponding damage class for the building
                     building_damage_classes = output_clf[building_mask]
-                    most_common_class = np.bincount(building_damage_classes).argmax()  # Most frequent class in the building
+                    most_common_class = np.bincount(building_damage_classes).argmax()
+                    
                     # Reverse the dictionary to map the class index back to the label name
                     index_to_label = {v: k for k, v in target_label_value_dict.items()}
                     damage_label = index_to_label[most_common_class]
@@ -244,7 +245,7 @@ def main():
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--model_type', type=str, default='MambaBDA_Tiny')
     parser.add_argument('--result_saved_path', type=str, default='../results')
-    parser.add_argument("--size_threshold", type=int, default=0, help="Threshold to exclude small regions by area")
+    parser.add_argument("--conf_threshold", type=float, default=0.5, help="Threshold to exclude low conf pixels")
     # Add other arguments here as needed
     parser.add_argument('--resume', type=str)
 
